@@ -18,11 +18,17 @@ from scipy import stats
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 # Set style for better visualizations
 sns.set_style('whitegrid')
 plt.rcParams['figure.figsize'] = (12, 6)
+
+# Create output directory if it doesn't exist
+if not os.path.exists('output'):
+    os.makedirs('output')
+    print("✅ Created 'output' directory for saving visualizations")
 
 class ExperienceSalaryAnalysis:
     """Class to perform statistical analysis on Experience-Salary dataset"""
