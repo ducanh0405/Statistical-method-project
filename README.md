@@ -46,10 +46,10 @@ Statistical-method-project/
 ├── README.md                     # Project documentation
 ├── Salary_Data.csv              # Dataset (download from Kaggle)
 │
-└── Output Files (generated):
-    ├── descriptive_statistics.png
-    ├── confidence_intervals.png
-    └── regression_analysis.png
+├── output/
+│   ├── descriptive_statistics.png
+│   ├── confidence_intervals.png
+│   └── regression_analysis.png
 ```
 
 ---
@@ -209,15 +209,6 @@ The script will:
 - **Regression Analysis**: OLS (Ordinary Least Squares)
 - **Diagnostic Tests**: Normality tests, residual analysis
 - **ANOVA**: Analysis of variance for regression
-
----
-
-## 👨‍💻 Author
-
-**Data Science Student - HCMIU**
-- Project: Statistical Methods Analysis
-- Competition: Datastorm 2025 (Round 2)
-- Date: December 2025
 
 ---
 

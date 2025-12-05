@@ -178,8 +178,8 @@ class ExperienceSalaryAnalysis:
         axes[1, 2].grid(True, alpha=0.3)
         
         plt.tight_layout()
-        plt.savefig('descriptive_statistics.png', dpi=300, bbox_inches='tight')
-        print("\n✅ Visualization saved as 'descriptive_statistics.png'")
+        plt.savefig('output/descriptive_statistics.png', dpi=300, bbox_inches='tight')
+        print("\n✅ Visualization saved as 'output/descriptive_statistics.png'")
         plt.close()
     
     def confidence_intervals(self, confidence_level=0.95):
@@ -282,8 +282,8 @@ class ExperienceSalaryAnalysis:
         axes[1].set_xlim(-0.5, 0.5)
         
         plt.tight_layout()
-        plt.savefig('confidence_intervals.png', dpi=300, bbox_inches='tight')
-        print("\n✅ Visualization saved as 'confidence_intervals.png'")
+        plt.savefig('output/confidence_intervals.png', dpi=300, bbox_inches='tight')
+        print("\n✅ Visualization saved as 'output/confidence_intervals.png'")
         plt.close()
     
     def hypothesis_tests(self, mu0_x=None, mu0_y=None, alpha=0.05):
@@ -595,8 +595,8 @@ class ExperienceSalaryAnalysis:
         axes[1, 2].grid(True, alpha=0.3)
         
         plt.tight_layout()
-        plt.savefig('regression_analysis.png', dpi=300, bbox_inches='tight')
-        print("\n✅ Visualization saved as 'regression_analysis.png'")
+        plt.savefig('output/regression_analysis.png', dpi=300, bbox_inches='tight')
+        print("\n✅ Visualization saved as 'output/regression_analysis.png'")
         plt.close()
 
 def main():
@@ -630,9 +630,9 @@ def main():
         print(" " * 30 + "ANALYSIS COMPLETE!")
         print("="*80)
         print("\n📁 Output files generated:")
-        print("  - descriptive_statistics.png")
-        print("  - confidence_intervals.png")
-        print("  - regression_analysis.png")
+        print("  - output/descriptive_statistics.png")
+        print("  - output/confidence_intervals.png")
+        print("  - output/regression_analysis.png")
         print("\n✨ All statistical analyses have been completed successfully!\n")
         
     except FileNotFoundError:
