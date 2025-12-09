@@ -10,6 +10,7 @@ Author: Data Science Student - HCMIU
 Date: December 2025
 """
 
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,7 +36,12 @@ class ExperienceSalaryAnalysis:
     
     def __init__(self, data_path):
         """Initialize with dataset path"""
+        # Ensure output directory exists for generated plots
+        os.makedirs('output', exist_ok=True)
+
         self.df = pd.read_csv(data_path)
+        self.x_label = None
+        self.y_label = None
         self.prepare_data()
         
     def prepare_data(self):
@@ -52,20 +58,68 @@ class ExperienceSalaryAnalysis:
         print(f"\nMissing values:")
         print(self.df.isnull().sum())
         
-        # Assuming columns are 'Experience' and 'Salary' or similar
-        # Adjust column names based on actual dataset
+        # Determine usable numeric columns
+        numeric_cols = self.df.select_dtypes(include=[np.number]).columns
+
+        # Prefer common column names if present
         if 'Experience' in self.df.columns and 'Salary' in self.df.columns:
-            self.x = self.df['Experience'].values
-            self.y = self.df['Salary'].values
+            x_col, y_col = 'Experience', 'Salary'
         elif 'YearsExperience' in self.df.columns and 'Salary' in self.df.columns:
-            self.x = self.df['YearsExperience'].values
-            self.y = self.df['Salary'].values
+            x_col, y_col = 'YearsExperience', 'Salary'
         else:
-            # Use first two numerical columns
-            numeric_cols = self.df.select_dtypes(include=[np.number]).columns
-            self.x = self.df[numeric_cols[0]].values
-            self.y = self.df[numeric_cols[1]].values
-            print(f"\nUsing columns: X={numeric_cols[0]}, Y={numeric_cols[1]}")
+            # Fallback: first two numeric columns
+            if len(numeric_cols) < 2:
+                raise ValueError("Dataset must contain at least two numeric columns for X and Y.")
+            x_col, y_col = numeric_cols[0], numeric_cols[1]
+            print(f"\nUsing columns: X={x_col}, Y={y_col}")
+
+        # Standardize labels
+        self.x_label = x_col
+        self.y_label = y_col
+
+        # Convert to numeric and drop invalid rows
+        df_clean = pd.DataFrame({
+            'X': pd.to_numeric(self.df[x_col], errors='coerce'),
+            'Y': pd.to_numeric(self.df[y_col], errors='coerce')
+        })
+
+        original_rows = len(df_clean)
+
+        # Drop rows with NaNs or infinite values
+        df_clean = df_clean.replace([np.inf, -np.inf], np.nan).dropna()
+
+        # Remove duplicates
+        before_dup = len(df_clean)
+        df_clean = df_clean.drop_duplicates()
+        dup_removed = before_dup - len(df_clean)
+
+        # Remove outliers using IQR rule for both X and Y
+        def _iqr_filter(series):
+            q1, q3 = series.quantile([0.25, 0.75])
+            iqr = q3 - q1
+            lower = q1 - 1.5 * iqr
+            upper = q3 + 1.5 * iqr
+            return series.between(lower, upper)
+
+        mask = _iqr_filter(df_clean['X']) & _iqr_filter(df_clean['Y'])
+        outliers_removed = len(df_clean) - mask.sum()
+        df_clean = df_clean[mask]
+
+        # Auto-convert months to years if column suggests months
+        if 'month' in x_col.lower():
+            df_clean['X'] = df_clean['X'] / 12.0
+            self.x_label = f"{x_col} (converted to years)"
+            print(f"  Converted '{x_col}' from months to years")
+
+        self.x = df_clean['X'].values
+        self.y = df_clean['Y'].values
+
+        # Summary of cleaning
+        removed = original_rows - len(df_clean)
+        print(f"\nData cleaning summary:")
+        print(f"  Original rows: {original_rows}")
+        print(f"  Removed rows (NaN/Inf/outliers/duplicates): {removed} (duplicates: {dup_removed}, outliers: {outliers_removed})")
+        print(f"  Final rows used: {len(df_clean)}")
     
     def descriptive_statistics(self):
         """1. Compute descriptive statistics for X and Y"""
@@ -74,7 +128,7 @@ class ExperienceSalaryAnalysis:
         print("="*80)
         
         # For X (Experience)
-        print("\n📊 Statistics for X (Experience):")
+        print(f"\n📊 Statistics for X ({self.x_label}):")
         print("-" * 50)
         x_stats = {
             'Count': len(self.x),
@@ -99,7 +153,7 @@ class ExperienceSalaryAnalysis:
             print(f"{key:.<30} {value:.4f}")
         
         # For Y (Salary)
-        print("\n📊 Statistics for Y (Salary):")
+        print(f"\n📊 Statistics for Y ({self.y_label}):")
         print("-" * 50)
         y_stats = {
             'Count': len(self.y),
@@ -143,9 +197,9 @@ class ExperienceSalaryAnalysis:
         axes[0, 0].hist(self.x, bins=20, color='skyblue', edgecolor='black', alpha=0.7)
         axes[0, 0].axvline(np.mean(self.x), color='red', linestyle='--', linewidth=2, label=f'Mean: {np.mean(self.x):.2f}')
         axes[0, 0].axvline(np.median(self.x), color='green', linestyle='--', linewidth=2, label=f'Median: {np.median(self.x):.2f}')
-        axes[0, 0].set_xlabel('Experience (Years)')
+        axes[0, 0].set_xlabel(self.x_label)
         axes[0, 0].set_ylabel('Frequency')
-        axes[0, 0].set_title('Distribution of Experience')
+        axes[0, 0].set_title(f'Distribution of {self.x_label}')
         axes[0, 0].legend()
         axes[0, 0].grid(True, alpha=0.3)
         
@@ -153,29 +207,29 @@ class ExperienceSalaryAnalysis:
         axes[0, 1].hist(self.y, bins=20, color='lightcoral', edgecolor='black', alpha=0.7)
         axes[0, 1].axvline(np.mean(self.y), color='red', linestyle='--', linewidth=2, label=f'Mean: {np.mean(self.y):.2f}')
         axes[0, 1].axvline(np.median(self.y), color='green', linestyle='--', linewidth=2, label=f'Median: {np.median(self.y):.2f}')
-        axes[0, 1].set_xlabel('Salary')
+        axes[0, 1].set_xlabel(self.y_label)
         axes[0, 1].set_ylabel('Frequency')
-        axes[0, 1].set_title('Distribution of Salary')
+        axes[0, 1].set_title(f'Distribution of {self.y_label}')
         axes[0, 1].legend()
         axes[0, 1].grid(True, alpha=0.3)
         
         # Box plot for X
         axes[0, 2].boxplot(self.x, vert=True)
-        axes[0, 2].set_ylabel('Experience (Years)')
-        axes[0, 2].set_title('Box Plot of Experience')
+        axes[0, 2].set_ylabel(self.x_label)
+        axes[0, 2].set_title(f'Box Plot of {self.x_label}')
         axes[0, 2].grid(True, alpha=0.3)
         
         # Box plot for Y
         axes[1, 0].boxplot(self.y, vert=True)
-        axes[1, 0].set_ylabel('Salary')
-        axes[1, 0].set_title('Box Plot of Salary')
+        axes[1, 0].set_ylabel(self.y_label)
+        axes[1, 0].set_title(f'Box Plot of {self.y_label}')
         axes[1, 0].grid(True, alpha=0.3)
         
         # Scatter plot
         axes[1, 1].scatter(self.x, self.y, alpha=0.6, color='purple')
-        axes[1, 1].set_xlabel('Experience (Years)')
-        axes[1, 1].set_ylabel('Salary')
-        axes[1, 1].set_title(f'Experience vs Salary (r={np.corrcoef(self.x, self.y)[0,1]:.3f})')
+        axes[1, 1].set_xlabel(self.x_label)
+        axes[1, 1].set_ylabel(self.y_label)
+        axes[1, 1].set_title(f'{self.x_label} vs {self.y_label} (r={np.corrcoef(self.x, self.y)[0,1]:.3f})')
         axes[1, 1].grid(True, alpha=0.3)
         
         # Q-Q plots
@@ -262,27 +316,27 @@ class ExperienceSalaryAnalysis:
                     fontsize=16, fontweight='bold')
         
         # CI for X
-        axes[0].errorbar(['Experience'], [x_mean], 
+        axes[0].errorbar([self.x_label], [x_mean], 
                         yerr=[[x_mean - x_ci_lower], [x_ci_upper - x_mean]], 
                         fmt='o', markersize=10, capsize=10, capthick=2, 
                         color='blue', ecolor='blue', linewidth=2)
         axes[0].axhline(y=x_mean, color='red', linestyle='--', alpha=0.5, label=f'Mean: {x_mean:.2f}')
         axes[0].fill_between([0, 1], x_ci_lower, x_ci_upper, alpha=0.2, color='blue')
-        axes[0].set_ylabel('Years')
-        axes[0].set_title('CI for Mean Experience')
+        axes[0].set_ylabel(self.x_label)
+        axes[0].set_title(f'CI for Mean {self.x_label}')
         axes[0].legend()
         axes[0].grid(True, alpha=0.3)
         axes[0].set_xlim(-0.5, 0.5)
         
         # CI for Y
-        axes[1].errorbar(['Salary'], [y_mean], 
+        axes[1].errorbar([self.y_label], [y_mean], 
                         yerr=[[y_mean - y_ci_lower], [y_ci_upper - y_mean]], 
                         fmt='o', markersize=10, capsize=10, capthick=2, 
                         color='green', ecolor='green', linewidth=2)
-        axes[1].axhline(y=y_mean, color='red', linestyle='--', alpha=0.5, label=f'Mean: ${y_mean:.2f}')
+        axes[1].axhline(y=y_mean, color='red', linestyle='--', alpha=0.5, label=f'Mean: {y_mean:.2f}')
         axes[1].fill_between([0, 1], y_ci_lower, y_ci_upper, alpha=0.2, color='green')
-        axes[1].set_ylabel('Salary ($)')
-        axes[1].set_title('CI for Mean Salary')
+        axes[1].set_ylabel(self.y_label)
+        axes[1].set_title(f'CI for Mean {self.y_label}')
         axes[1].legend()
         axes[1].grid(True, alpha=0.3)
         axes[1].set_xlim(-0.5, 0.5)
@@ -435,7 +489,7 @@ class ExperienceSalaryAnalysis:
         print("\n📈 Simple Linear Regression Model:")
         print("-" * 50)
         print(f"\nRegression Equation:")
-        print(f"  Salary = {intercept:.4f} + {slope:.4f} × Experience")
+        print(f"  {self.y_label} = {intercept:.4f} + {slope:.4f} × {self.x_label}")
         print(f"  ŷ = {intercept:.4f} + {slope:.4f}x")
         
         # Model evaluation
@@ -489,7 +543,7 @@ class ExperienceSalaryAnalysis:
         
         if p_value_slope < 0.05:
             print(f"\n  ✅ The slope is statistically significant (p < 0.05)")
-            print(f"     Experience has a significant effect on Salary")
+            print(f"     {self.x_label} has a significant effect on {self.y_label}")
         else:
             print(f"\n  ❌ The slope is not statistically significant (p ≥ 0.05)")
         
@@ -555,8 +609,8 @@ class ExperienceSalaryAnalysis:
         # 1. Regression line plot
         axes[0, 0].scatter(X, y, alpha=0.6, label='Actual data', color='blue')
         axes[0, 0].plot(X, y_pred, 'r-', linewidth=2, label=f'Regression line\nŷ = {intercept:.2f} + {slope:.2f}x')
-        axes[0, 0].set_xlabel('Experience (Years)')
-        axes[0, 0].set_ylabel('Salary ($)')
+        axes[0, 0].set_xlabel(self.x_label)
+        axes[0, 0].set_ylabel(self.y_label)
         axes[0, 0].set_title(f'Linear Regression (R² = {r2:.4f})')
         axes[0, 0].legend()
         axes[0, 0].grid(True, alpha=0.3)

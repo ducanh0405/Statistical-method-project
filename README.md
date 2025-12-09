@@ -62,6 +62,16 @@ Statistical-method-project/
 2. Download the dataset
 3. Save it as `Salary_Data.csv` in the project directory
 
+### Step 1.1: Data Preprocessing (tự động trong code)
+- Tự động chọn 2 cột numeric đầu tiên (ưu tiên `Experience/YearsExperience` và `Salary`)
+- Chuyển đổi giá trị `exp(in months)` sang **years** nếu phát hiện cột chứa chữ “month”
+- Chuẩn hóa numeric, loại bỏ:
+  - NaN / Inf
+  - Dòng trùng lặp
+  - Outlier theo quy tắc IQR (1.5 × IQR) cho cả X và Y
+- In ra tóm tắt số dòng bị loại và số dòng cuối dùng cho phân tích
+- Tự động tạo folder `output/` nếu chưa tồn tại
+
 ### Step 2: Run the Analysis
 
 ```bash
